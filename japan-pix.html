@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japan Pix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .gallery-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-slide.active {
+            opacity: 1;
+            z-index: 1;
+        }
+
+        .image-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        /* Loading placeholder */
+        .image-slide.loading {
+            background: #111;
+        }
+
+        /* Navigation arrows */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            z-index: 100;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+            opacity: 0.5;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .nav-arrow:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .nav-arrow.prev {
+            left: 20px;
+        }
+
+        .nav-arrow.next {
+            right: 20px;
+        }
+
+        /* Counter */
+        .counter {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+            opacity: 0.7;
+        }
+
+        /* Loading indicator */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .nav-arrow {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .nav-arrow.prev {
+                left: 10px;
+            }
+
+            .nav-arrow.next {
+                right: 10px;
+            }
+
+            .counter {
+                bottom: 20px;
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+        }
+
+        /* Touch feedback */
+        @media (hover: none) {
+            .nav-arrow {
+                opacity: 0.3;
+            }
+
+            .nav-arrow:active {
+                opacity: 0.8;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery-container" id="gallery">
+        <!-- Images will be inserted here -->
+    </div>
+
+    <button class="nav-arrow prev" id="prevBtn" aria-label="Previous image">
+        ←
+    </button>
+    <button class="nav-arrow next" id="nextBtn" aria-label="Next image">
+        →
+    </button>
+
+    <div class="counter" id="counter">
+        <span id="currentNum">1</span> / <span id="totalNum">14</span>
+    </div>
+
+    <script>
+        // Image list
+        const images = [
+            'carp_rally.jpg',
+            'crisp_hannah.jpeg',
+            'dormy.jpg',
+            'gazer.jpg',
+            'gogi_pastiche.jpg',
+            'hannah_album_back.jpg',
+            'hannah_album_front.jpg',
+            'herb.jpg',
+            'market.jpg',
+            'meiji_lovers.jpeg',
+            'mosquito_temple.jpg',
+            'our_station.jpeg',
+            'tree_guys.jpg',
+            'yellow_abstract.jpeg'
+        ];
+
+        let currentIndex = 0;
+        const gallery = document.getElementById('gallery');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const currentNum = document.getElementById('currentNum');
+        const totalNum = document.getElementById('totalNum');
+
+        // Set total count
+        totalNum.textContent = images.length;
+
+        // Create image slides
+        images.forEach((imageName, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'image-slide';
+            if (index === 0) slide.classList.add('active');
+            
+            const img = document.createElement('img');
+            img.dataset.small = `images/small/${imageName}`;
+            img.dataset.large = `images/big/${imageName}`;
+            img.alt = imageName.replace(/\.(jpg|jpeg)$/, '').replace(/_/g, ' ');
+            
+            // Start with small image
+            img.src = img.dataset.small;
+            
+            slide.appendChild(img);
+            gallery.appendChild(slide);
+        });
+
+        const slides = document.querySelectorAll('.image-slide');
+
+        // Lazy load function
+        function lazyLoadImage(slide) {
+            const img = slide.querySelector('img');
+            if (!img.dataset.loaded) {
+                const largeImg = new Image();
+                largeImg.src = img.dataset.large;
+                
+                largeImg.onload = () => {
+                    img.src = img.dataset.large;
+                    img.dataset.loaded = 'true';
+                };
+            }
+        }
+
+        // Preload adjacent images
+        function preloadAdjacentImages() {
+            const prevIndex = (currentIndex - 1 + images.length) % images.length;
+            const nextIndex = (currentIndex + 1) % images.length;
+            
+            lazyLoadImage(slides[currentIndex]);
+            lazyLoadImage(slides[prevIndex]);
+            lazyLoadImage(slides[nextIndex]);
+        }
+
+        // Show specific slide
+        function showSlide(index) {
+            slides[currentIndex].classList.remove('active');
+            currentIndex = index;
+            slides[currentIndex].classList.add('active');
+            currentNum.textContent = currentIndex + 1;
+            
+            preloadAdjacentImages();
+        }
+
+        // Navigation functions
+        function nextSlide() {
+            const nextIndex = (currentIndex + 1) % images.length;
+            showSlide(nextIndex);
+        }
+
+        function prevSlide() {
+            const prevIndex = (currentIndex - 1 + images.length) % images.length;
+            showSlide(prevIndex);
+        }
+
+        // Event listeners
+        prevBtn.addEventListener('click', prevSlide);
+        nextBtn.addEventListener('click', nextSlide);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'ArrowRight') nextSlide();
+        });
+
+        // Touch/swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        gallery.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        gallery.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    nextSlide();
+                } else {
+                    prevSlide();
+                }
+            }
+        }
+
+        // Initialize - load first image and preload neighbors
+        preloadAdjacentImages();
+    </script>
+</body>
+</html>
+
