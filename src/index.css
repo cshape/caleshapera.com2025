@@ -7,9 +7,9 @@
   --color-surface: #fff;
   --color-text: #1a1a1a;
   --color-text-muted: #666;
-  --color-link: #1a5f3c;
-  --color-link-hover: #0d3d25;
-  --color-link-visited: #2d7a50;
+  --color-link: #0066cc;
+  --color-link-hover: #004499;
+  --color-link-visited: #551a8b;
   --color-border: #1a1a1a;
   --color-border-light: #e5e5e5;
   --color-accent: #1a1a1a;
@@ -82,49 +82,6 @@ a:visited {
 a:hover {
   color: var(--color-link-hover);
 }
-
-/* Bracket link style - square brackets that expand on hover */
-.bracket-link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  color: var(--color-link);
-}
-
-.bracket-link::before,
-.bracket-link::after {
-  font-family: var(--font-mono);
-  color: var(--color-link);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bracket-link::before {
-  content: '[';
-  margin-right: 0.15em;
-}
-
-.bracket-link::after {
-  content: ']';
-  margin-left: 0.15em;
-}
-
-.bracket-link:hover::before {
-  transform: translateX(-3px);
-}
-
-.bracket-link:hover::after {
-  transform: translateX(3px);
-}
-
-.bracket-link:visited {
-  color: var(--color-link);
-}
-
-.bracket-link:visited::before,
-.bracket-link:visited::after {
-  color: var(--color-link);
-}
-
 
 /* Social icons */
 .social-icon {
@@ -211,38 +168,6 @@ a:hover {
   font-style: normal;
   font-size: 0.85em;
   color: var(--color-text-muted);
-}
-
-/* Home page enter link */
-.enter-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35em;
-  color: var(--color-link);
-}
-
-.enter-link:visited {
-  color: var(--color-link);
-}
-
-.enter-link .bracket {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.enter-link .enter-text {
-  transition: letter-spacing 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.enter-link:hover .bracket:first-child {
-  transform: translateX(-4px);
-}
-
-.enter-link:hover .bracket:last-child {
-  transform: translateX(4px);
-}
-
-.enter-link:hover .enter-text {
-  letter-spacing: 0.15em;
 }
 
 /* About page centered content */
