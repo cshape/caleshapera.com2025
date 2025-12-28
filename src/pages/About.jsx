@@ -10,7 +10,7 @@ function About() {
 
   return (
     <main 
-      className={`about-page min-h-screen flex flex-col justify-center items-center transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
+      className={`about-page transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
     >
       <div className="about-content">
         <p>
