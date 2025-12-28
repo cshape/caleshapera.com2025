@@ -186,6 +186,10 @@ a:hover {
   margin: 0 auto;
 }
 
+.about-content .quote {
+  margin: 0;
+}
+
 @media (min-width: 768px) {
   .about-content {
     padding: 2rem;
@@ -210,7 +214,7 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 5% 1rem;
+    padding: 1rem;
     background: var(--color-background);
   }
   
@@ -228,17 +232,17 @@ a:hover {
     line-height: 1.5;
   }
   
-  .quote {
-    margin: 0.3em 0;
+  .about-content .quote {
+    margin: 0;
     padding-left: 0.6em;
     line-height: 1.35;
   }
   
-  .quote p {
+  .about-content .quote p {
     margin-bottom: 0.15em;
   }
   
-  .quote footer {
+  .about-content .quote footer {
     font-size: 0.85em;
   }
 }
