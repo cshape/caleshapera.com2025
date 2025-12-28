@@ -23,10 +23,7 @@ function Home() {
       <Link 
         to="/about" 
         className="enter-link text-sm tracking-widest no-underline"
-        style={{ 
-          color: 'var(--color-text-muted)',
-          letterSpacing: '0.15em'
-        }}
+        style={{ letterSpacing: '0.15em' }}
       >
         <span className="bracket">[</span>
         <span className="enter-text">enter</span>

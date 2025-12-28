@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Spinner } from '@heroui/react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // Use local worker in development, production worker in production
 const isDev = import.meta.env.DEV
@@ -174,7 +176,25 @@ function Chat() {
                 <span className="message-role">
                   {msg.role === 'user' ? 'You' : 'Assistant'}
                 </span>
-                <p>{msg.content}</p>
+                <div className="message-text">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer">
+                          {children}
+                        </a>
+                      ),
+                      code: ({ inline, className, children, ...props }) => (
+                        inline 
+                          ? <code className="inline-code" {...props}>{children}</code>
+                          : <pre className="code-block"><code className={className} {...props}>{children}</code></pre>
+                      ),
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           ))}

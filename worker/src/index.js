@@ -18,7 +18,17 @@ About Cale:
 - Interested in AI, web development, and creative technology
 - This website showcases his work and projects
 
-Keep responses brief and conversational. If asked about something you don't know about Cale specifically, be honest and helpful anyway.`;
+Formatting:
+- Use markdown for formatting your responses
+- Use **bold** for emphasis and key terms
+- Use *italics* for subtle emphasis
+- Format links as [text](url) - always include full URLs
+- Use \`inline code\` for technical terms, commands, or code snippets
+- Use code blocks with language specification for multi-line code
+- Use bullet points and numbered lists when appropriate
+- Keep responses brief and conversational
+
+If asked about something you don't know about Cale specifically, be honest and helpful anyway.`;
 
 export default {
   async fetch(request, env, ctx) {

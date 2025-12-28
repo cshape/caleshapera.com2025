@@ -14,7 +14,7 @@ function About() {
     >
       <div className="about-content">
         <p>
-          Hello, I'm Cale Shapera - a creative technologist currently working as a Product Engineer at <a href="https://inworld.ai" target="_blank" rel="noopener noreferrer">Inworld AI</a>.
+          Hello, I'm Cale Shapera - a creative technologist currently working as a Product Engineer at <a href="https://inworld.ai" target="_blank" rel="noopener noreferrer" className="bracket-link">Inworld AI</a>.
         </p>
 
         <blockquote className="quote">
