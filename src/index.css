@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+/* Theme variables - Academic minimal aesthetic */
+:root {
+  /* Light mode - warm paper tones */
+  --color-background: #faf8f5;
+  --color-surface: #fff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #666;
+  --color-link: #2563eb;
+  --color-link-hover: #dc2626;
+  --color-link-visited: #7c3aed;
+  --color-border: #1a1a1a;
+  --color-border-light: #e5e5e5;
+  --color-accent: #1a1a1a;
+  
+  /* Typography */
+  --font-serif: "Crimson Pro", "Crimson Text", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  
+  /* Spacing */
+  --max-width: 680px;
+  --content-padding: 1.5rem;
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 20px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-serif);
+  line-height: 1.7;
+  background: var(--color-background);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3 {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin-bottom: 1.25em;
+}
+
+strong {
+  font-weight: 600;
+}
+
+em {
+  font-style: italic;
+}
+
+/* Links */
+a {
+  color: var(--color-link);
+  transition: color 0.15s ease;
+}
+
+a:visited {
+  color: var(--color-link-visited);
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+/* External link indicator */
+a[href^="http"]:not([href*="caleshapera.com"]):not(.social-icon)::after {
+  content: " ↗";
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+/* Social icons */
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.social-icon:visited {
+  color: var(--color-text-muted);
+}
+
+.social-icon:hover {
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+/* Layout container */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--content-padding);
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-background);
+}
+
+/* Scrollbar (subtle) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* Blockquote */
+.quote {
+  margin: 1.5em 0;
+  padding-left: 1.25em;
+  border-left: 2px solid var(--color-border-light);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.quote p {
+  margin-bottom: 0.5em;
+}
+
+.quote footer {
+  font-style: normal;
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+}
+
+/* Home page enter link */
+.enter-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enter-link:visited {
+  color: var(--color-text-muted);
+}
+
+.enter-link .bracket {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.enter-link .enter-text {
+  transition: letter-spacing 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enter-link:hover {
+  color: var(--color-text);
+}
+
+.enter-link:hover .bracket:first-child {
+  transform: translateX(-4px);
+}
+
+.enter-link:hover .bracket:last-child {
+  transform: translateX(4px);
+}
+
+.enter-link:hover .enter-text {
+  letter-spacing: 0.15em;
+}
+
+/* About page centered content */
+.about-content {
+  width: 100%;
+  max-width: var(--max-width);
+  padding: var(--content-padding);
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .about-content {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .about-content {
+    max-width: 720px;
+  }
+}
