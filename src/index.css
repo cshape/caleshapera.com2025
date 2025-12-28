@@ -208,6 +208,14 @@ a:hover {
 }
 
 /* About page centered content */
+.about-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .about-content {
   width: 100%;
   max-width: var(--max-width);
