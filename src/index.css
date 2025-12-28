@@ -204,12 +204,24 @@ a:hover {
 
 /* Mobile: ensure quote fits in viewport without scrolling */
 @media (max-width: 767px) {
+  html:has(.about-page),
+  html:has(.about-page) body {
+    height: 100dvh;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
   .about-page {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
+    height: 100dvh;
+    height: 100vh;
     overflow: hidden;
     display: flex;
     align-items: center;
