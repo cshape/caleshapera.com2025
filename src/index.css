@@ -230,16 +230,16 @@ a:hover {
 /* Mobile: ensure quote fits in viewport without scrolling */
 @media (max-width: 767px) {
   html {
-    font-size: 14px;
+    font-size: 16px;
   }
   
   .about-content {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 100vh;
-    min-height: 100dvh;
   }
   
   .about-content p {
@@ -247,16 +247,16 @@ a:hover {
   }
   
   .quote {
-    margin: 0.75em 0;
+    margin: 0.5em 0;
     padding-left: 0.75em;
-    line-height: 1.5;
+    line-height: 1.45;
   }
   
   .quote p {
-    margin-bottom: 0.35em;
+    margin-bottom: 0.25em;
   }
   
   .quote footer {
-    font-size: 0.8em;
+    font-size: 0.85em;
   }
 }
