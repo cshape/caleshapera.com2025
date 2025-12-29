@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Spinner } from '@heroui/react'
+import { Button, Spinner, Select, SelectItem } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -18,6 +18,9 @@ function Chat() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [models, setModels] = useState([])
+  const [selectedModel, setSelectedModel] = useState('')
+  const [modelsLoading, setModelsLoading] = useState(true)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -26,7 +29,27 @@ function Chat() {
     document.title = 'Chat — Cale Shapera'
     // Focus input on mount
     inputRef.current?.focus()
+    
+    // Fetch available models
+    fetchModels()
   }, [])
+
+  const fetchModels = async () => {
+    try {
+      const response = await fetch(`${WORKER_URL}/models`)
+      if (response.ok) {
+        const data = await response.json()
+        setModels(data.models || [])
+        setSelectedModel(data.default || '')
+      }
+    } catch (error) {
+      console.error('Failed to fetch models:', error)
+      // Set a fallback default
+      setSelectedModel('openai:gpt-4.1-nano')
+    } finally {
+      setModelsLoading(false)
+    }
+  }
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -63,6 +86,7 @@ function Chat() {
         },
         body: JSON.stringify({
           messages: conversationHistory,
+          model: selectedModel,
         }),
       })
 
@@ -140,6 +164,24 @@ function Chat() {
     }
   }
 
+  // Group models by provider for the dropdown
+  const groupedModels = models.reduce((acc, model) => {
+    if (!acc[model.provider]) {
+      acc[model.provider] = []
+    }
+    acc[model.provider].push(model)
+    return acc
+  }, {})
+
+  const providerLabels = {
+    anthropic: 'Anthropic',
+    openai: 'OpenAI',
+    google: 'Google',
+    fireworks: 'Fireworks',
+    groq: 'Groq',
+    mistral: 'Mistral',
+  }
+
   return (
     <div 
       className={`chat-page min-h-screen flex flex-col transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
@@ -152,7 +194,28 @@ function Chat() {
           <span className="bracket">]</span>
         </Link>
         <h1>Chat</h1>
-        <div className="header-spacer" />
+        <div className="model-selector">
+          {modelsLoading ? (
+            <Spinner size="sm" color="current" />
+          ) : (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="model-dropdown"
+              disabled={isLoading}
+            >
+              {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                <optgroup key={provider} label={providerLabels[provider] || provider}>
+                  {providerModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          )}
+        </div>
       </header>
 
       {/* Messages */}
@@ -269,4 +332,3 @@ function Chat() {
 }
 
 export default Chat
-

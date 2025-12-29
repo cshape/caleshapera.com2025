@@ -6,7 +6,7 @@ var __publicField = (obj, key, value) => {
   return value;
 };
 
-// .wrangler/tmp/bundle-8H4FSm/strip-cf-connecting-ip-header.js
+// .wrangler/tmp/bundle-GAvMMi/strip-cf-connecting-ip-header.js
 function stripCfConnectingIPHeader(input, init) {
   const request = new Request(input, init);
   request.headers.delete("CF-Connecting-IP");
@@ -897,6 +897,56 @@ var CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type"
 };
+var AVAILABLE_MODELS = {
+  anthropic: {
+    provider: "SERVICE_PROVIDER_ANTHROPIC",
+    models: [
+      { id: "claude-opus-4-1", name: "Claude Opus 4.1" },
+      { id: "claude-sonnet-4-0", name: "Claude Sonnet 4.0" },
+      { id: "claude-3-5-haiku-latest", name: "Claude 3.5 Haiku" }
+    ]
+  },
+  openai: {
+    provider: "SERVICE_PROVIDER_OPENAI",
+    models: [
+      { id: "gpt-4.1", name: "GPT-4.1" },
+      { id: "gpt-4.1-mini", name: "GPT-4.1 Mini" },
+      { id: "gpt-4.1-nano", name: "GPT-4.1 Nano" }
+    ]
+  },
+  google: {
+    provider: "SERVICE_PROVIDER_GOOGLE",
+    models: [
+      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+      { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" }
+    ]
+  },
+  fireworks: {
+    provider: "SERVICE_PROVIDER_FIREWORKS",
+    models: [
+      { id: "accounts/fireworks/models/deepseek-v3-0324", name: "DeepSeek V3" },
+      { id: "accounts/fireworks/models/llama4-maverick-instruct-basic", name: "Llama 4 Maverick" }
+    ]
+  },
+  groq: {
+    provider: "SERVICE_PROVIDER_GROQ",
+    models: [
+      { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant" },
+      { id: "gemma2-9b-it", name: "Gemma 2 9B" }
+    ]
+  },
+  mistral: {
+    provider: "SERVICE_PROVIDER_MISTRAL",
+    models: [
+      { id: "mistral-small-latest", name: "Mistral Small" },
+      { id: "ministral-8b-latest", name: "Ministral 8B" }
+    ]
+  }
+};
+var DEFAULT_MODEL = {
+  provider: "SERVICE_PROVIDER_OPENAI",
+  model: "gpt-4.1-nano"
+};
 var SYSTEM_PROMPT = `You are Cale's AI assistant on caleshapera.com. You're helpful, friendly, and concise.
 
 About Cale:
@@ -915,6 +965,11 @@ Formatting:
 - Keep responses brief and conversational
 
 If asked about something you don't know about Cale specifically, be honest and helpful anyway.`;
+var ROLE_MAP = {
+  "system": "MESSAGE_ROLE_SYSTEM",
+  "user": "MESSAGE_ROLE_USER",
+  "assistant": "MESSAGE_ROLE_ASSISTANT"
+};
 var src_default = {
   async fetch(request, env2, ctx) {
     const url = new URL(request.url);
@@ -929,74 +984,121 @@ var src_default = {
         headers: { ...CORS_HEADERS, "Content-Type": "text/plain" }
       });
     }
+    if (url.pathname === "/models") {
+      const models = [];
+      for (const [providerKey, providerData] of Object.entries(AVAILABLE_MODELS)) {
+        for (const model of providerData.models) {
+          models.push({
+            id: `${providerKey}:${model.id}`,
+            name: model.name,
+            provider: providerKey
+          });
+        }
+      }
+      return jsonResponse({ models, default: `openai:${DEFAULT_MODEL.model}` });
+    }
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         status: "ok",
         timestamp: Date.now(),
-        hasApiKey: !!env2.OPENAI_API_KEY
-      }), {
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+        hasApiKey: !!env2.INWORLD_API_KEY
       });
     }
     return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
   }
 };
+function parseModelString(modelString) {
+  if (!modelString)
+    return DEFAULT_MODEL;
+  const [providerKey, ...modelParts] = modelString.split(":");
+  const modelId = modelParts.join(":");
+  const providerData = AVAILABLE_MODELS[providerKey];
+  if (!providerData)
+    return DEFAULT_MODEL;
+  const modelExists = providerData.models.some((m) => m.id === modelId);
+  if (!modelExists)
+    return DEFAULT_MODEL;
+  return {
+    provider: providerData.provider,
+    model: modelId
+  };
+}
+__name(parseModelString, "parseModelString");
 async function handleChat(request, env2) {
   try {
     const body = await request.json();
-    const { messages } = body;
+    const { messages, model: modelString } = body;
     if (!messages || !Array.isArray(messages)) {
       return jsonResponse({ error: "Invalid request: messages array required" }, 400);
     }
-    if (!env2.OPENAI_API_KEY) {
+    if (!env2.INWORLD_API_KEY) {
       return jsonResponse({
-        error: "OpenAI API key not configured",
-        response: "The AI is not configured yet. Please set up the OPENAI_API_KEY secret."
+        error: "Inworld API key not configured",
+        response: "The AI is not configured yet. Please set up the INWORLD_API_KEY secret."
       }, 500);
     }
-    const openaiMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
+    const { provider, model } = parseModelString(modelString);
+    const userId = "web-user-" + Math.random().toString(36).substring(7);
+    const inworldMessages = [
+      {
+        role: ROLE_MAP["system"],
+        content: SYSTEM_PROMPT
+      },
       ...messages.map((m) => ({
-        role: m.role,
+        role: ROLE_MAP[m.role] || "MESSAGE_ROLE_USER",
         content: m.content
       }))
     ];
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const requestBody = {
+      servingId: {
+        modelId: {
+          model,
+          serviceProvider: provider
+        },
+        userId
+      },
+      messages: inworldMessages,
+      textGenerationConfig: {
+        maxTokens: 1024,
+        temperature: 0.7
+      }
+    };
+    const inworldResponse = await fetch("https://api.inworld.ai/llm/v1alpha/completions:completeChat", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${env2.OPENAI_API_KEY}`,
+        "Authorization": `Basic ${env2.INWORLD_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: "gpt-4.1-nano",
-        messages: openaiMessages,
-        max_tokens: 1024,
-        temperature: 0.7
-      })
+      body: JSON.stringify(requestBody)
     });
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json().catch(() => ({}));
-      console.error("OpenAI API error:", openaiResponse.status, errorData);
-      if (openaiResponse.status === 401) {
+    if (!inworldResponse.ok) {
+      const errorData = await inworldResponse.json().catch(() => ({}));
+      console.error("Inworld API error:", inworldResponse.status, errorData);
+      if (inworldResponse.status === 401) {
         return jsonResponse({ error: "Invalid API key" }, 500);
       }
-      if (openaiResponse.status === 429) {
+      if (inworldResponse.status === 429) {
         return jsonResponse({
           error: "Rate limited",
           response: "Too many requests. Please try again in a moment."
         }, 429);
       }
       return jsonResponse({
-        error: "OpenAI API error",
+        error: "Inworld API error",
+        details: errorData.message || errorData,
         response: "Something went wrong with the AI. Please try again."
       }, 500);
     }
-    const data = await openaiResponse.json();
-    const assistantMessage = data.choices?.[0]?.message?.content;
+    const data = await inworldResponse.json();
+    const assistantMessage = data.result?.choices?.[0]?.message?.content || data.choices?.[0]?.message?.content;
     if (!assistantMessage) {
-      return jsonResponse({ error: "No response from AI" }, 500);
+      console.error("Unexpected response format:", data);
+      return jsonResponse({ error: "No response from AI", debug: data }, 500);
     }
-    return jsonResponse({ response: assistantMessage });
+    return jsonResponse({
+      response: assistantMessage,
+      model: `${model}`
+    });
   } catch (error3) {
     console.error("Chat error:", error3);
     return jsonResponse({
@@ -1058,7 +1160,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-8H4FSm/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-GAvMMi/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1090,7 +1192,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-8H4FSm/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-GAvMMi/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
