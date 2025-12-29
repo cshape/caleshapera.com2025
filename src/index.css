@@ -204,27 +204,35 @@ a:hover {
 
 /* Mobile: ensure quote fits in viewport without scrolling */
 @media (max-width: 767px) {
+  /* Reset html/body for about page on mobile */
+  body:has(.about-page) {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  
   .about-page {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    margin: 0;
-    padding: 1rem;
-    overflow: hidden;
-    background: var(--color-background);
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    height: -webkit-fill-available !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    overflow: hidden !important;
+    background: var(--color-background) !important;
     /* Flexbox with webkit prefixes for iOS */
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-    -webkit-box-pack: center;
-    -webkit-justify-content: center;
-    justify-content: center;
+    display: -webkit-box !important;
+    display: -webkit-flex !important;
+    display: flex !important;
+    -webkit-box-align: center !important;
+    -webkit-align-items: center !important;
+    align-items: center !important;
+    -webkit-box-pack: center !important;
+    -webkit-justify-content: center !important;
+    justify-content: center !important;
   }
   
   .about-content {
