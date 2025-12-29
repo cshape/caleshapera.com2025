@@ -567,6 +567,25 @@ a:hover {
 .message-text h3 { font-size: 1.05em; }
 .message-text h4 { font-size: 1em; }
 
+/* Streaming Cursor */
+.streaming-cursor {
+  display: inline-block;
+  color: var(--color-link);
+  animation: blink 0.8s ease-in-out infinite;
+  margin-left: 1px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
 /* Typing Indicator */
 .typing-indicator {
   display: flex;

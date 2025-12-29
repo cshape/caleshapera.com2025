@@ -6,7 +6,7 @@ var __publicField = (obj, key, value) => {
   return value;
 };
 
-// .wrangler/tmp/bundle-GAvMMi/strip-cf-connecting-ip-header.js
+// .wrangler/tmp/bundle-Zi3Fs0/strip-cf-connecting-ip-header.js
 function stripCfConnectingIPHeader(input, init) {
   const request = new Request(input, init);
   request.headers.delete("CF-Connecting-IP");
@@ -1060,7 +1060,9 @@ async function handleChat(request, env2) {
       messages: inworldMessages,
       textGenerationConfig: {
         maxTokens: 1024,
-        temperature: 0.7
+        temperature: 0.7,
+        stream: true
+        // Enable streaming
       }
     };
     const inworldResponse = await fetch("https://api.inworld.ai/llm/v1alpha/completions:completeChat", {
@@ -1072,7 +1074,13 @@ async function handleChat(request, env2) {
       body: JSON.stringify(requestBody)
     });
     if (!inworldResponse.ok) {
-      const errorData = await inworldResponse.json().catch(() => ({}));
+      const errorText = await inworldResponse.text();
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
       console.error("Inworld API error:", inworldResponse.status, errorData);
       if (inworldResponse.status === 401) {
         return jsonResponse({ error: "Invalid API key" }, 500);
@@ -1089,15 +1097,47 @@ async function handleChat(request, env2) {
         response: "Something went wrong with the AI. Please try again."
       }, 500);
     }
-    const data = await inworldResponse.json();
-    const assistantMessage = data.result?.choices?.[0]?.message?.content || data.choices?.[0]?.message?.content;
-    if (!assistantMessage) {
-      console.error("Unexpected response format:", data);
-      return jsonResponse({ error: "No response from AI", debug: data }, 500);
-    }
-    return jsonResponse({
-      response: assistantMessage,
-      model: `${model}`
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+    (async () => {
+      const reader = inworldResponse.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              await processLine(buffer.trim(), writer, encoder);
+            }
+            await writer.write(encoder.encode("data: [DONE]\n\n"));
+            break;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            await processLine(line.trim(), writer, encoder);
+          }
+        }
+      } catch (error3) {
+        console.error("Streaming error:", error3);
+        const errorData = JSON.stringify({ error: error3.message });
+        await writer.write(encoder.encode(`data: ${errorData}
+
+`));
+      } finally {
+        await writer.close();
+      }
+    })();
+    return new Response(readable, {
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
     });
   } catch (error3) {
     console.error("Chat error:", error3);
@@ -1108,6 +1148,29 @@ async function handleChat(request, env2) {
   }
 }
 __name(handleChat, "handleChat");
+async function processLine(line, writer, encoder) {
+  if (!line)
+    return;
+  try {
+    const parsed = JSON.parse(line);
+    if (parsed.error) {
+      console.error("Inworld stream error:", parsed.error);
+      return;
+    }
+    const content = parsed.result?.choices?.[0]?.message?.content || parsed.choices?.[0]?.message?.content || parsed.result?.choices?.[0]?.delta?.content || parsed.choices?.[0]?.delta?.content;
+    if (content) {
+      const sseData = JSON.stringify({
+        choices: [{ delta: { content } }]
+      });
+      await writer.write(encoder.encode(`data: ${sseData}
+
+`));
+    }
+  } catch (parseError) {
+    console.log("Skipping malformed line:", line.substring(0, 100));
+  }
+}
+__name(processLine, "processLine");
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -1160,7 +1223,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-GAvMMi/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-Zi3Fs0/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1192,7 +1255,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-GAvMMi/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-Zi3Fs0/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

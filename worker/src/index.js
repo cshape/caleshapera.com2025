@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker - Chat API with Inworld LLM Service
+ * Cloudflare Worker - Chat API with Inworld LLM Service (Streaming)
  * 
  * Local: npm run dev (uses .dev.vars for INWORLD_API_KEY)
  * Production: wrangler secret put INWORLD_API_KEY
@@ -161,7 +161,7 @@ function parseModelString(modelString) {
 }
 
 /**
- * Handle chat requests using Inworld LLM API
+ * Handle chat requests using Inworld LLM API with streaming
  */
 async function handleChat(request, env) {
   try {
@@ -198,7 +198,7 @@ async function handleChat(request, env) {
       })),
     ];
 
-    // Build request body for Inworld API
+    // Build request body for Inworld API with streaming enabled
     const requestBody = {
       servingId: {
         modelId: {
@@ -211,6 +211,7 @@ async function handleChat(request, env) {
       textGenerationConfig: {
         maxTokens: 1024,
         temperature: 0.7,
+        stream: true, // Enable streaming
       },
     };
 
@@ -224,11 +225,19 @@ async function handleChat(request, env) {
       body: JSON.stringify(requestBody),
     });
 
+    // For streaming, we need to check status without consuming the body
     if (!inworldResponse.ok) {
-      const errorData = await inworldResponse.json().catch(() => ({}));
+      // For error responses, we can safely read the body
+      const errorText = await inworldResponse.text();
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
       console.error('Inworld API error:', inworldResponse.status, errorData);
       
-      // Handle specific error cases
       if (inworldResponse.status === 401) {
         return jsonResponse({ error: 'Invalid API key' }, 500);
       }
@@ -246,20 +255,59 @@ async function handleChat(request, env) {
       }, 500);
     }
 
-    const data = await inworldResponse.json();
-    
-    // Extract message from Inworld response format
-    const assistantMessage = data.result?.choices?.[0]?.message?.content 
-      || data.choices?.[0]?.message?.content;
+    // Stream the response back to the client as SSE
+    // Inworld returns NDJSON (newline-delimited JSON) format
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
 
-    if (!assistantMessage) {
-      console.error('Unexpected response format:', data);
-      return jsonResponse({ error: 'No response from AI', debug: data }, 500);
-    }
+    // Process the streaming response in the background
+    (async () => {
+      const reader = inworldResponse.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-    return jsonResponse({ 
-      response: assistantMessage,
-      model: `${model}`,
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            // Process any remaining data in buffer
+            if (buffer.trim()) {
+              await processLine(buffer.trim(), writer, encoder);
+            }
+            // Send done signal
+            await writer.write(encoder.encode('data: [DONE]\n\n'));
+            break;
+          }
+
+          // Decode and add to buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Process complete lines from buffer (NDJSON format)
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            await processLine(line.trim(), writer, encoder);
+          }
+        }
+      } catch (error) {
+        console.error('Streaming error:', error);
+        const errorData = JSON.stringify({ error: error.message });
+        await writer.write(encoder.encode(`data: ${errorData}\n\n`));
+      } finally {
+        await writer.close();
+      }
+    })();
+
+    // Return streaming response
+    return new Response(readable, {
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
 
   } catch (error) {
@@ -268,6 +316,43 @@ async function handleChat(request, env) {
       error: 'Failed to process chat request',
       response: 'Something went wrong. Please try again.'
     }, 500);
+  }
+}
+
+/**
+ * Process a single line from Inworld's NDJSON response and write as SSE
+ */
+async function processLine(line, writer, encoder) {
+  if (!line) return;
+
+  try {
+    // Parse the JSON object
+    const parsed = JSON.parse(line);
+    
+    // Extract content from Inworld's streaming response format
+    // Format: { result: { choices: [{ message: { content: "..." } }] } }
+    // or error: { error: { message: "..." } }
+    
+    if (parsed.error) {
+      console.error('Inworld stream error:', parsed.error);
+      return;
+    }
+    
+    const content = parsed.result?.choices?.[0]?.message?.content 
+      || parsed.choices?.[0]?.message?.content
+      || parsed.result?.choices?.[0]?.delta?.content
+      || parsed.choices?.[0]?.delta?.content;
+    
+    if (content) {
+      // Send as SSE format that frontend expects
+      const sseData = JSON.stringify({ 
+        choices: [{ delta: { content } }] 
+      });
+      await writer.write(encoder.encode(`data: ${sseData}\n\n`));
+    }
+  } catch (parseError) {
+    // Skip malformed lines silently
+    console.log('Skipping malformed line:', line.substring(0, 100));
   }
 }
 
